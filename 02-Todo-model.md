@@ -10,6 +10,8 @@
 
 ## 1  Create the `TodoItem` model
 
+Create: `TodoItem.swift`
+
 ```swift
 import Foundation
 
@@ -31,6 +33,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
 ---
 
 ## 2  Upgrade persistence helpers
+
+Updat: `Helpers.swift`
 
 ```swift
 private let kTasksKey = "tasks.v2"   // changed key so v1 data won’t clash
@@ -55,6 +59,8 @@ extension UserDefaults {
 ---
 
 ## 3  Refactor `TodoViewModel`
+
+Update: `TodoViewModel.swift`
 
 ```swift
 final class TodoViewModel: ObservableObject {
@@ -91,6 +97,8 @@ final class TodoViewModel: ObservableObject {
 ---
 
 ## 4  Update **`ContentView`** UI
+
+Update: `ContentView.swift`
 
 ```swift
 struct ContentView: View {
@@ -137,6 +145,8 @@ struct ContentView: View {
 
 ### TaskRow component
 
+Create: `TaskRow.swift` (a SwiftUI View)
+
 ```swift
 struct TaskRow: View {
     let todo: TodoItem
@@ -152,6 +162,11 @@ struct TaskRow: View {
                 .foregroundColor(todo.isDone ? .secondary : .primary)
         }
     }
+}
+
+#Preview {
+    // For testing mock up a TodoItem
+    TaskRow(todo: TodoItem(title: "Feed the Cat"))
 }
 ```
 

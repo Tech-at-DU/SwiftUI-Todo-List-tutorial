@@ -14,6 +14,8 @@
 
 If you followed Part 1 exactly you already have a stack; otherwise adjust `ContentView`:
 
+Edit: `ContentView.swift`
+
 ```swift
 struct ContentView: View {
     @EnvironmentObject var vm: TodoViewModel
@@ -29,21 +31,36 @@ struct ContentView: View {
         }
     }
 
-    // Extracted sub‑views for clarity
-    private var inputBar: some View { /* unchanged */ }
+  // Extracted sub‑views for clarity
+  private var inputBar: some View {
+    // Input row
+    HStack {
+        TextField("Add a task…", text: $newTask, onCommit: addTask)
+            .submitLabel(.done)
+        Button(action: addTask) {
+            Image(systemName: "plus.circle.fill")
+                .font(.title2)
+        }
+    }
+  }
     private var todoList: some View {
         List {
-            ForEach(vm.items) { item in
+          ForEach($vm.todos) { $todo in
                 NavigationLink {
-                    TodoDetailView(todo: item) // push detail
+                    TodoDetailView(todo: $todo) // push detail
                 } label: {
-                    TaskRow(todo: item)
+                    TaskRow(todo: todo)
                 }
             }
             .onDelete(perform: vm.delete)
             .onMove(perform: vm.move)
         }
     }
+  
+  private func addTask() {
+      vm.add(newTask)
+      newTask = ""
+  }
 }
 ```
 
@@ -55,96 +72,83 @@ In Part 2 we renamed `tasks` → `items` and `TodoItem` now has `id` + `isDone`
 
 ## 2  Create `TodoDetailView`
 
+Create: `TodoDetailView.swift` (a SwiftUI View!)
+
 ```swift
 struct TodoDetailView: View {
-    @EnvironmentObject var vm: TodoViewModel
-    @State private var draft: TodoItem
-
-    // Pass the item to edit in the initializer
-    init(todo: TodoItem) {
-        _draft = State(initialValue: todo)
-    }
+  @Binding var todo: TodoItem
 
     var body: some View {
         Form {
             Section("Task") {
-                TextField("Title", text: $draft.title)
-                Toggle("Completed", isOn: $draft.isDone)
+                TextField("Title", text: $todo.title)
+                Toggle("Completed", isOn: $todo.isDone)
             }
         }
         .navigationTitle("Edit Task")
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Save", action: saveChanges)
-            }
-        }
     }
+}
 
-    private func saveChanges() {
-        vm.update(draft)            // new intent in the VM
-    }
+#Preview {
+  TodoDetailView(todo: .constant(TodoItem(title: "Get Boba!")))
 }
 ```
 
 > We keep a **local `@State draft`** so the user can cancel with the system back‑swipe without mutating shared data until “Save”.
 
-### Preview
-
-```swift
-#Preview {
-    NavigationStack {
-        TodoDetailView(todo: TodoItem(title: "Sample", isDone: false))
-            .environmentObject(TodoViewModel())
-    }
-}
-```
-
 ---
 
 ## 3  Update `TodoViewModel`
 
+Edit: `TodoViewModel.swift`
+
 ```swift
 final class TodoViewModel: ObservableObject {
-    @Published var items: [TodoItem] {
-        didSet { persist() }
+  @Published var todos: [TodoItem] {
+    didSet { persist() }
+  }
+  
+  // MARK: – Init & persistence
+  private let key = "tasks.v2"  // new key after the model upgrade
+  init() {
+    if let data = UserDefaults.standard.data(forKey: key),
+       let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) {
+      todos = decoded
+    } else {
+      todos = []
     }
-
-    // MARK: – Init & persistence
-    private let key = "tasks.v2"  // new key after the model upgrade
-    init() {
-        if let data = UserDefaults.standard.data(forKey: key),
-           let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) {
-            items = decoded
-        } else {
-            items = []
-        }
+  }
+  private func persist() {
+    if let encoded = try? JSONEncoder().encode(todos) {
+      UserDefaults.standard.set(encoded, forKey: key)
     }
-    private func persist() {
-        if let encoded = try? JSONEncoder().encode(items) {
-            UserDefaults.standard.set(encoded, forKey: key)
-        }
-    }
-
-    // MARK: – Intents
-    func add(_ title: String) {
-        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        items.append(TodoItem(title: title))
-    }
-
-    func delete(at offsets: IndexSet) { items.remove(atOffsets: offsets) }
-    func move(from source: IndexSet, to destination: Int) { items.move(fromOffsets: source, toOffset: destination) }
-
-    /// Toggle from TaskRow
-    func toggle(_ item: TodoItem) {
-        guard let idx = items.firstIndex(of: item) else { return }
-        items[idx].isDone.toggle()
-    }
-
-    /// Update from DetailView
-    func update(_ newItem: TodoItem) {
-        guard let idx = items.firstIndex(of: newItem) else { return }
-        items[idx] = newItem
-    }
+  }
+  
+  // MARK: – Intents
+  func add(_ title: String) {
+    guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+    todos.append(TodoItem(title: title))
+  }
+  
+  func delete(at offsets: IndexSet) {
+    todos.remove(atOffsets: offsets)
+  }
+  
+  func move(from source: IndexSet, to destination: Int) {
+    todos.move(fromOffsets: source, toOffset: destination)
+  }
+  
+  /// Toggle from TaskRow
+  func toggle(_ item: TodoItem) {
+    guard let idx = todos.firstIndex(of: item) else { return }
+    todos[idx].isDone.toggle()
+  }
+  
+  /// Update from DetailView
+  func update(_ newItem: TodoItem) {
+    guard let idx = todos.firstIndex(of: newItem) else { return }
+    todos[idx] = newItem
+  }
 }
 ```
 

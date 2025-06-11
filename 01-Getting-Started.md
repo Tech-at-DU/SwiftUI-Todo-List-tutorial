@@ -7,7 +7,6 @@
 > 1. lets the user add & delete tasks and
 > 2. stores those tasks in **UserDefaults** so they persist across launches.
 >
-> This series assumes you already know basic Swift and the SwiftUI syntax covered in ACS 2420 Lesson 2.
 
 ---
 
@@ -15,7 +14,6 @@
 
 * **Xcode 15** or newer (download from the Mac App Store)
 * macOS 13+ (Ventura) or macOS 14 (Sonoma)
-* Completed Lesson 2 (Stacks, `@State`, `List`, `NavigationStack`).
 
 ---
 
@@ -41,6 +39,8 @@ Run the project (⌘‑R). You should see the “Hello, world!” template.
 
 We’ll store an array of **`String`** tasks in UserDefaults. Later parts will upgrade to a struct with an `id` and `isDone` flag, but strings keep Part 1 laser‑focused.
 
+`Helpers.swift`
+
 ```swift
 /// Key used in UserDefaults
 private let kTasksKey = "tasks"
@@ -59,6 +59,8 @@ extension UserDefaults {
 ## 3  Create `TodoViewModel`
 
 `ObservableObject` acts as the single source of truth.
+
+`TodoViewModel.swift`
 
 ```swift
 final class TodoViewModel: ObservableObject {
@@ -124,6 +126,10 @@ struct ContentView: View {
         vm.add(newTask)
         newTask = ""
     }
+}
+
+#Preview {
+  ContentView().environmentObject(TodoViewModel())
 }
 ```
 
